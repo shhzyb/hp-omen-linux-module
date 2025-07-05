@@ -58,7 +58,7 @@ static const char * const omen_thermal_profile_boards[] = {
 	"874A", "8603", "8604", "8748", "886B", "886C", "878A", "878B", "878C",
 	"88C8", "88CB", "8786", "8787", "8788", "88D1", "88D2", "88F4", "88FD",
 	"88F5", "88F6", "88F7", "88FE", "88FF", "8900", "8901", "8902", "8912",
-	"8917", "8918", "8949", "894A", "89EB"
+	"8917", "8918", "8949", "894A", "89EB", "8A4D"
 };
 
 /* DMI Board names of Omen laptops that are specifically set to be thermal
@@ -245,7 +245,7 @@ static const struct key_entry hp_wmi_keymap[] = {
 
 static struct input_dev *hp_wmi_input_dev;
 static struct platform_device *hp_wmi_platform_dev;
-static struct platform_profile_handler platform_profile_handler;
+static struct device *platform_profile_dev;
 static bool platform_profile_support;
 static bool zero_insize_support;
 
@@ -784,29 +784,21 @@ static struct attribute *hp_wmi_attrs[] = {
 };
 ATTRIBUTE_GROUPS(hp_wmi);
 
-static void hp_wmi_notify(u32 value, void *context)
+static void hp_wmi_notify(union acpi_object *data, void *context)
 {
-	struct acpi_buffer response = { ACPI_ALLOCATE_BUFFER, NULL };
 	u32 event_id, event_data;
 	union acpi_object *obj;
-	acpi_status status;
 	u32 *location;
 	int key_code;
 
-	status = wmi_get_event_data(value, &response);
-	if (status == AE_NOT_FOUND) {
+	if (!data) {
 		// We've been woken up without any event data
 		// Some models do this when the Omen hotkey is pressed
 		event_id = HPWMI_OMEN_KEY;
 		goto event_id_switch;
 	}
 
-	else if (status != AE_OK) {
-		pr_info("bad event status 0x%x\n", status);
-		return;
-	}
-
-	obj = (union acpi_object *)response.pointer;
+	obj = data;
 
 	if (!obj)
 		return;
@@ -1144,8 +1136,7 @@ fail:
 	return err;
 }
 
-static int platform_profile_omen_get(struct platform_profile_handler *pprof,
-				     enum platform_profile_option *profile)
+static int platform_profile_omen_get(struct device *dev, enum platform_profile_option *profile)
 {
 	int tp;
 
@@ -1173,8 +1164,7 @@ static int platform_profile_omen_get(struct platform_profile_handler *pprof,
 	return 0;
 }
 
-static int platform_profile_omen_set(struct platform_profile_handler *pprof,
-				     enum platform_profile_option profile)
+static int platform_profile_omen_set(struct device *dev, enum platform_profile_option profile)
 {
 	int err, tp, tp_version;
 
@@ -1213,6 +1203,23 @@ static int platform_profile_omen_set(struct platform_profile_handler *pprof,
 	return 0;
 }
 
+static int platform_profile_omen_probe(void *drvdata, unsigned long *choices)
+{
+	set_bit(PLATFORM_PROFILE_COOL, choices);
+	set_bit(PLATFORM_PROFILE_BALANCED, choices);
+	set_bit(PLATFORM_PROFILE_PERFORMANCE, choices);
+	return 0;
+}
+
+static int platform_profile_hp_probe(void *drvdata, unsigned long *choices)
+{
+	set_bit(PLATFORM_PROFILE_QUIET, choices);
+	set_bit(PLATFORM_PROFILE_COOL, choices);
+	set_bit(PLATFORM_PROFILE_BALANCED, choices);
+	set_bit(PLATFORM_PROFILE_PERFORMANCE, choices);
+	return 0;
+}
+
 static int thermal_profile_get(void)
 {
 	return hp_wmi_read_int(HPWMI_THERMAL_PROFILE_QUERY);
@@ -1224,8 +1231,7 @@ static int thermal_profile_set(int thermal_profile)
 							   sizeof(thermal_profile), 0);
 }
 
-static int hp_wmi_platform_profile_get(struct platform_profile_handler *pprof,
-					enum platform_profile_option *profile)
+static int hp_wmi_platform_profile_get(struct device *dev, enum platform_profile_option *profile)
 {
 	int tp;
 
@@ -1253,8 +1259,7 @@ static int hp_wmi_platform_profile_get(struct platform_profile_handler *pprof,
 	return 0;
 }
 
-static int hp_wmi_platform_profile_set(struct platform_profile_handler *pprof,
-					enum platform_profile_option profile)
+static int hp_wmi_platform_profile_set(struct device *dev, enum platform_profile_option profile)
 {
 	int err, tp;
 
@@ -1488,6 +1493,16 @@ static int fourzone_setup(struct platform_device *dev)
 static int thermal_profile_setup(void)
 {
 	int err, tp;
+	static const struct platform_profile_ops omen_ops = {
+		.probe = platform_profile_omen_probe,
+		.profile_get = platform_profile_omen_get,
+		.profile_set = platform_profile_omen_set,
+	};
+	static const struct platform_profile_ops hp_ops = {
+		.probe = platform_profile_hp_probe,
+		.profile_get = hp_wmi_platform_profile_get,
+		.profile_set = hp_wmi_platform_profile_set,
+	};
 
 	if (is_omen_thermal_profile()) {
 		tp = omen_thermal_profile_get();
@@ -1503,8 +1518,8 @@ static int thermal_profile_setup(void)
 		if (err < 0)
 			return err;
 
-		platform_profile_handler.profile_get = platform_profile_omen_get;
-		platform_profile_handler.profile_set = platform_profile_omen_set;
+		platform_profile_dev = platform_profile_register(&hp_wmi_platform_dev->dev, 
+								  "hp-wmi", NULL, &omen_ops);
 	} else {
 		tp = thermal_profile_get();
 
@@ -1519,19 +1534,12 @@ static int thermal_profile_setup(void)
 		if (err)
 			return err;
 
-		platform_profile_handler.profile_get = hp_wmi_platform_profile_get;
-		platform_profile_handler.profile_set = hp_wmi_platform_profile_set;
-
-		set_bit(PLATFORM_PROFILE_QUIET, platform_profile_handler.choices);
+		platform_profile_dev = platform_profile_register(&hp_wmi_platform_dev->dev,
+								  "hp-wmi", NULL, &hp_ops);
 	}
 
-	set_bit(PLATFORM_PROFILE_COOL, platform_profile_handler.choices);
-	set_bit(PLATFORM_PROFILE_BALANCED, platform_profile_handler.choices);
-	set_bit(PLATFORM_PROFILE_PERFORMANCE, platform_profile_handler.choices);
-
-	err = platform_profile_register(&platform_profile_handler);
-	if (err)
-		return err;
+	if (IS_ERR(platform_profile_dev))
+		return PTR_ERR(platform_profile_dev);
 
 	platform_profile_support = true;
 
@@ -1572,7 +1580,7 @@ static int __init hp_wmi_bios_setup(struct platform_device *device)
 	return 0;
 }
 
-static int __exit hp_wmi_bios_remove(struct platform_device *device)
+static void hp_wmi_bios_remove(struct platform_device *device)
 {
 	int i;
 
@@ -1595,9 +1603,7 @@ static int __exit hp_wmi_bios_remove(struct platform_device *device)
 	}
 
 	if (platform_profile_support)
-		platform_profile_remove();
-
-	return 0;
+		platform_profile_remove(platform_profile_dev);
 }
 
 static int hp_wmi_resume_handler(struct device *device)
@@ -1648,7 +1654,7 @@ static struct platform_driver hp_wmi_driver = {
 		.pm = &hp_wmi_pm_ops,
 		.dev_groups = hp_wmi_groups,
 	},
-	.remove = __exit_p(hp_wmi_bios_remove),
+	.remove = hp_wmi_bios_remove,
 };
 
 static umode_t hp_wmi_hwmon_is_visible(const void *data,

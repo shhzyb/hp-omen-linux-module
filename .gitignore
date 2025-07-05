@@ -1,12 +1,83 @@
+# Kernel module build artifacts
 *.ko
+*.ko.zst
 *.o
 *.a
-module/.*
 *.mod
 *.mod.c
 *.mod.o
+*.so
+*.so.*
+
+# Module build files
 modules.order
 Module.symvers
+module/.*
+
+# Make and build system files
+.*.cmd
+.tmp_versions/
+.cache.mk
+
+# DKMS build artifacts
+build/
+*.tar.gz
+version.h
+
+# DKMS directories
 omen_cs/*
+
+# Application binaries
 app
 iasl
+
+# Editor and IDE files
+*~
+*.swp
+*.swo
+.vscode/
+.idea/
+*.sublime-*
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Backup files
+*.bak
+*.orig
+*.rej
+*.tmp
+
+# Log files
+*.log
+
+# Compressed files
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.zip
+*.rar
+
+# Debug files
+*.debug
+
+# Generated documentation
+*.pdf
+*.dvi
+*.aux
+*.out
+
+# Patch files
+*.patch
+*.diff
+
+# Build system temporary files
+.built
+.installed
+.configured
