@@ -1,0 +1,13 @@
+[Unit]
+Description=HP OMEN RGB Keyboard Color Setup
+After=graphical-session.target
+
+[Service]
+Type=oneshot
+ExecStart=/home/shaw/hp-omen-linux-module/setup_rgb_colors.sh --wait --verify
+RemainAfterExit=true
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target

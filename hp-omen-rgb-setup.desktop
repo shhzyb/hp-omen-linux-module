@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=HP OMEN RGB Setup
+Comment=Set up RGB keyboard colors for HP OMEN
+Exec=/home/shaw/hp-omen-linux-module/setup_rgb_colors.sh -v
+Icon=preferences-desktop-theme
+Terminal=true
+Categories=System;Settings;
+StartupNotify=false

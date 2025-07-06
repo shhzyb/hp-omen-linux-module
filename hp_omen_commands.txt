@@ -54,7 +54,7 @@ echo "0000FF" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone02  # Zone 3
 echo "FFFF00" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone03  # Zone 4: Yellow
 
 # Gaming theme (red/black)
-echo "FF0000" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone00 zone02  # Zones 1&3: Red
+echo "FF0000" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone00 zone02 zone03 zone01 # Zones 1&3: Red
 echo "000000" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone01 zone03  # Zones 2&4: Off
 
 # Individual zone control
@@ -149,89 +149,341 @@ QUICK SETUP ALIASES (add to ~/.bashrc)
 # alias fan-auto='echo 2 | sudo tee /sys/devices/platform/hp-wmi/hwmon/hwmon*/pwm1_enable'
 # alias fan-max='echo 0 | sudo tee /sys/devices/platform/hp-wmi/hwmon/hwmon*/pwm1_enable'
 
-TROUBLESHOOTING
-==============
+AUTOMATIC RGB SETUP ON STARTUP
+===============================
 
-# Check if module is loaded correctly
-lsmod | grep hp_wmi
+# Set up automatic RGB color restoration on login
+./install_rgb_autostart.sh
 
-# Check kernel messages for hp-wmi
-sudo dmesg | grep -i hp
+# Manually run the RGB setup script
+./setup_rgb_colors.sh
 
-# Check if RGB zones are available
-ls -la /sys/devices/platform/hp-wmi/rgb_zones/
+# Set all zones to blue on startup
+./setup_rgb_colors.sh --color 0000FF
 
-# Check if platform profile is available
-ls -la /sys/devices/platform/hp-wmi/platform-profile/
+# Set rainbow colors with verification
+./setup_rgb_colors.sh --verify
 
-# Check if hwmon is available
-ls -la /sys/devices/platform/hp-wmi/hwmon/
+# Check status of the auto-setup service
+systemctl --user status hp-omen-rgb.service
 
-# Reload module if needed
-sudo rmmod hp_wmi && sudo modprobe hp_wmi
+# View logs from the auto-setup service
+journalctl --user -u hp-omen-rgb.service
 
-# Check board name (should be 8A4D for this system)
-cat /sys/class/dmi/id/board_name
+# Manually start the service
+systemctl --user start hp-omen-rgb.service
 
-RGB COLOR REFERENCE
-==================
+# Disable automatic startup
+systemctl --user disable hp-omen-rgb.service
 
-Format: RRGGBB (Red Green Blue in hexadecimal)
-Each component ranges from 00 (off) to FF (maximum)
+# RGB KEYBOARD CONTROL
+===================
 
-Basic Colors:
-000000 = Black (off)
-FFFFFF = White
-FF0000 = Red
-00FF00 = Green  
-0000FF = Blue
-FFFF00 = Yellow
-FF00FF = Magenta
-00FFFF = Cyan
+# Check current RGB settings for all zones
+for zone in /sys/devices/platform/hp-wmi/rgb_zones/zone*; do echo "$(basename $zone):"; cat "$zone"; done
 
-Popular Colors:
-FFA500 = Orange
-800080 = Purple
-FFC0CB = Pink
-A52A2A = Brown
-808080 = Gray
-C0C0C0 = Silver
-FFD700 = Gold
-DC143C = Crimson
-4B0082 = Indigo
-FF1493 = Deep Pink
-32CD32 = Lime Green
-FF6347 = Tomato
-4169E1 = Royal Blue
-8A2BE2 = Blue Violet
-20B2AA = Light Sea Green
-
-NOTES
-=====
-
-- All RGB values are in hexadecimal format (RRGGBB)
-- Commands that modify settings require sudo/root privileges
-- Changes take effect immediately
-- RGB settings may reset after suspend/resume (depending on firmware)
-- Fan control and thermal profiles are persistent across reboots
-- The module supports 4 RGB zones (zone00, zone01, zone02, zone03)
-- Use 'watch' command to monitor values in real-time
-- Board name 8A4D has been added to support this HP OMEN model
-
-EXAMPLE USAGE SESSION
-====================
-
-# 1. Check current status
-cat /sys/devices/platform/hp-wmi/platform-profile/platform-profile-0/profile
-
-# 2. Set to performance mode
-echo "performance" | sudo tee /sys/devices/platform/hp-wmi/platform-profile/platform-profile-0/profile
-
-# 3. Set RGB to blue
+# Set all zones to blue
 echo "0000FF" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone*
 
-# 4. Monitor fan speeds
-watch -n 1 'ls /sys/devices/platform/hp-wmi/hwmon/hwmon*/fan*_input | xargs -I {} sh -c "echo \"\$(basename {}): \$(cat {})\""'
+# Different shades of blue
+echo "000080" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone*  # Dark blue
+echo "0000FF" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone*  # Pure blue  
+echo "4169E1" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone*  # Royal blue
+echo "87CEEB" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone*  # Sky blue
+echo "ADD8E6" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone*  # Light blue
 
-# 5. Set fans to auto mode
-echo 2 | sudo tee /sys/devices/platform/hp-wmi/hwmon/hwmon*/pwm1_enable
+# Other common colors
+echo "FF0000" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone*  # Red
+echo "00FF00" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone*  # Green
+echo "FFFF00" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone*  # Yellow
+echo "FF00FF" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone*  # Magenta
+echo "00FFFF" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone*  # Cyan
+echo "FFFFFF" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone*  # White
+echo "FFA500" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone*  # Orange
+echo "800080" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone*  # Purple
+echo "FFC0CB" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone*  # Pink
+
+# Set individual zones to different colors (rainbow effect)
+echo "FF0000" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone00  # Zone 1: Red
+echo "00FF00" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone01  # Zone 2: Green  
+echo "0000FF" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone02  # Zone 3: Blue
+echo "FFFF00" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone03  # Zone 4: Yellow
+
+# Gaming theme (red/black)
+echo "FF0000" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone00 zone02 zone03 zone01 # Zones 1&3: Red
+echo "000000" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone01 zone03  # Zones 2&4: Off
+
+# Individual zone control
+echo "FF0000" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone00  # Zone 1 only
+echo "00FF00" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone01  # Zone 2 only
+echo "0000FF" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone02  # Zone 3 only
+echo "FFFF00" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone03  # Zone 4 only
+
+THERMAL PROFILE CONTROL
+=======================
+
+# Check available thermal profiles
+cat /sys/devices/platform/hp-wmi/platform-profile/platform-profile-0/choices
+
+# Get current thermal profile
+cat /sys/devices/platform/hp-wmi/platform-profile/platform-profile-0/profile
+
+# Set thermal profiles (requires root)
+echo "performance" | sudo tee /sys/devices/platform/hp-wmi/platform-profile/platform-profile-0/profile
+echo "balanced" | sudo tee /sys/devices/platform/hp-wmi/platform-profile/platform-profile-0/profile
+echo "cool" | sudo tee /sys/devices/platform/hp-wmi/platform-profile/platform-profile-0/profile
+
+FAN CONTROL
+==========
+
+# Check fan speeds (RPM)
+cat /sys/devices/platform/hp-wmi/hwmon/hwmon*/fan1_input
+cat /sys/devices/platform/hp-wmi/hwmon/hwmon*/fan2_input
+
+# Check all fan speeds at once
+ls /sys/devices/platform/hp-wmi/hwmon/hwmon*/fan*_input | xargs -I {} sh -c 'echo "$(basename {}): $(cat {})"'
+
+# Check fan control mode
+cat /sys/devices/platform/hp-wmi/hwmon/hwmon*/pwm1_enable
+
+# Set fan control mode (requires root)
+echo 2 | sudo tee /sys/devices/platform/hp-wmi/hwmon/hwmon*/pwm1_enable  # Automatic mode
+echo 0 | sudo tee /sys/devices/platform/hp-wmi/hwmon/hwmon*/pwm1_enable  # Max speed mode
+
+SYSTEM INFORMATION
+=================
+
+# Check hardware temperature
+cat /sys/devices/platform/hp-wmi/hddtemp
+
+# Check ambient light sensor
+cat /sys/devices/platform/hp-wmi/als
+
+# Set ambient light sensor (requires root)
+echo 1 | sudo tee /sys/devices/platform/hp-wmi/als  # Enable
+echo 0 | sudo tee /sys/devices/platform/hp-wmi/als  # Disable
+
+# Check dock status
+cat /sys/devices/platform/hp-wmi/dock
+
+# Check tablet mode
+cat /sys/devices/platform/hp-wmi/tablet
+
+# Check display status
+cat /sys/devices/platform/hp-wmi/display
+
+# Check POST error code
+cat /sys/devices/platform/hp-wmi/postcode
+
+# Clear POST error code (requires root)
+echo true | sudo tee /sys/devices/platform/hp-wmi/postcode
+
+MONITORING SCRIPTS
+=================
+
+# Monitor all system status
+watch -n 1 'echo "=== Thermal Profile ===" && cat /sys/devices/platform/hp-wmi/platform-profile/platform-profile-0/profile && echo -e "\n=== Fan Speeds ===" && ls /sys/devices/platform/hp-wmi/hwmon/hwmon*/fan*_input | xargs -I {} sh -c "echo \"\$(basename {}): \$(cat {})\"" && echo -e "\n=== Temperature ===" && cat /sys/devices/platform/hp-wmi/hddtemp'
+
+# Monitor RGB settings
+watch -n 2 'for zone in /sys/devices/platform/hp-wmi/rgb_zones/zone*; do echo "$(basename $zone):"; cat "$zone"; echo; done'
+
+# Simple fan monitor
+watch -n 1 'echo "Fan1: $(cat /sys/devices/platform/hp-wmi/hwmon/hwmon*/fan1_input) RPM" && echo "Fan2: $(cat /sys/devices/platform/hp-wmi/hwmon/hwmon*/fan2_input) RPM"'
+
+QUICK SETUP ALIASES (add to ~/.bashrc)
+=====================================
+
+# Add these to your ~/.bashrc for quick access:
+# alias rgb-blue='echo "0000FF" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone*'
+# alias rgb-red='echo "FF0000" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone*'
+# alias rgb-green='echo "00FF00" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone*'
+# alias rgb-white='echo "FFFFFF" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone*'
+# alias rgb-off='echo "000000" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone*'
+# alias thermal-performance='echo "performance" | sudo tee /sys/devices/platform/hp-wmi/platform-profile/platform-profile-0/profile'
+# alias thermal-balanced='echo "balanced" | sudo tee /sys/devices/platform/hp-wmi/platform-profile/platform-profile-0/profile'
+# alias thermal-cool='echo "cool" | sudo tee /sys/devices/platform/hp-wmi/platform-profile/platform-profile-0/profile'
+# alias fan-auto='echo 2 | sudo tee /sys/devices/platform/hp-wmi/hwmon/hwmon*/pwm1_enable'
+# alias fan-max='echo 0 | sudo tee /sys/devices/platform/hp-wmi/hwmon/hwmon*/pwm1_enable'
+
+AUTOMATIC RGB SETUP ON STARTUP
+===============================
+
+# Set up automatic RGB color restoration on login
+./install_rgb_autostart.sh
+
+# Manually run the RGB setup script
+./setup_rgb_colors.sh
+
+# Set all zones to blue on startup
+./setup_rgb_colors.sh --color 0000FF
+
+# Set rainbow colors with verification
+./setup_rgb_colors.sh --verify
+
+# Check status of the auto-setup service
+systemctl --user status hp-omen-rgb.service
+
+# View logs from the auto-setup service
+journalctl --user -u hp-omen-rgb.service
+
+# Manually start the service
+systemctl --user start hp-omen-rgb.service
+
+# Disable automatic startup
+systemctl --user disable hp-omen-rgb.service
+
+# RGB KEYBOARD CONTROL
+===================
+
+# Check current RGB settings for all zones
+for zone in /sys/devices/platform/hp-wmi/rgb_zones/zone*; do echo "$(basename $zone):"; cat "$zone"; done
+
+# Set all zones to blue
+echo "0000FF" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone*
+
+# Different shades of blue
+echo "000080" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone*  # Dark blue
+echo "0000FF" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone*  # Pure blue  
+echo "4169E1" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone*  # Royal blue
+echo "87CEEB" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone*  # Sky blue
+echo "ADD8E6" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone*  # Light blue
+
+# Other common colors
+echo "FF0000" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone*  # Red
+echo "00FF00" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone*  # Green
+echo "FFFF00" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone*  # Yellow
+echo "FF00FF" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone*  # Magenta
+echo "00FFFF" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone*  # Cyan
+echo "FFFFFF" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone*  # White
+echo "FFA500" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone*  # Orange
+echo "800080" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone*  # Purple
+echo "FFC0CB" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone*  # Pink
+
+# Set individual zones to different colors (rainbow effect)
+echo "FF0000" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone00  # Zone 1: Red
+echo "00FF00" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone01  # Zone 2: Green  
+echo "0000FF" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone02  # Zone 3: Blue
+echo "FFFF00" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone03  # Zone 4: Yellow
+
+# Gaming theme (red/black)
+echo "FF0000" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone00 zone02 zone03 zone01 # Zones 1&3: Red
+echo "000000" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone01 zone03  # Zones 2&4: Off
+
+# Individual zone control
+echo "FF0000" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone00  # Zone 1 only
+echo "00FF00" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone01  # Zone 2 only
+echo "0000FF" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone02  # Zone 3 only
+echo "FFFF00" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone03  # Zone 4 only
+
+THERMAL PROFILE CONTROL
+=======================
+
+# Check available thermal profiles
+cat /sys/devices/platform/hp-wmi/platform-profile/platform-profile-0/choices
+
+# Get current thermal profile
+cat /sys/devices/platform/hp-wmi/platform-profile/platform-profile-0/profile
+
+# Set thermal profiles (requires root)
+echo "performance" | sudo tee /sys/devices/platform/hp-wmi/platform-profile/platform-profile-0/profile
+echo "balanced" | sudo tee /sys/devices/platform/hp-wmi/platform-profile/platform-profile-0/profile
+echo "cool" | sudo tee /sys/devices/platform/hp-wmi/platform-profile/platform-profile-0/profile
+
+FAN CONTROL
+==========
+
+# Check fan speeds (RPM)
+cat /sys/devices/platform/hp-wmi/hwmon/hwmon*/fan1_input
+cat /sys/devices/platform/hp-wmi/hwmon/hwmon*/fan2_input
+
+# Check all fan speeds at once
+ls /sys/devices/platform/hp-wmi/hwmon/hwmon*/fan*_input | xargs -I {} sh -c 'echo "$(basename {}): $(cat {})"'
+
+# Check fan control mode
+cat /sys/devices/platform/hp-wmi/hwmon/hwmon*/pwm1_enable
+
+# Set fan control mode (requires root)
+echo 2 | sudo tee /sys/devices/platform/hp-wmi/hwmon/hwmon*/pwm1_enable  # Automatic mode
+echo 0 | sudo tee /sys/devices/platform/hp-wmi/hwmon/hwmon*/pwm1_enable  # Max speed mode
+
+SYSTEM INFORMATION
+=================
+
+# Check hardware temperature
+cat /sys/devices/platform/hp-wmi/hddtemp
+
+# Check ambient light sensor
+cat /sys/devices/platform/hp-wmi/als
+
+# Set ambient light sensor (requires root)
+echo 1 | sudo tee /sys/devices/platform/hp-wmi/als  # Enable
+echo 0 | sudo tee /sys/devices/platform/hp-wmi/als  # Disable
+
+# Check dock status
+cat /sys/devices/platform/hp-wmi/dock
+
+# Check tablet mode
+cat /sys/devices/platform/hp-wmi/tablet
+
+# Check display status
+cat /sys/devices/platform/hp-wmi/display
+
+# Check POST error code
+cat /sys/devices/platform/hp-wmi/postcode
+
+# Clear POST error code (requires root)
+echo true | sudo tee /sys/devices/platform/hp-wmi/postcode
+
+MONITORING SCRIPTS
+=================
+
+# Monitor all system status
+watch -n 1 'echo "=== Thermal Profile ===" && cat /sys/devices/platform/hp-wmi/platform-profile/platform-profile-0/profile && echo -e "\n=== Fan Speeds ===" && ls /sys/devices/platform/hp-wmi/hwmon/hwmon*/fan*_input | xargs -I {} sh -c "echo \"\$(basename {}): \$(cat {})\"" && echo -e "\n=== Temperature ===" && cat /sys/devices/platform/hp-wmi/hddtemp'
+
+# Monitor RGB settings
+watch -n 2 'for zone in /sys/devices/platform/hp-wmi/rgb_zones/zone*; do echo "$(basename $zone):"; cat "$zone"; echo; done'
+
+# Simple fan monitor
+watch -n 1 'echo "Fan1: $(cat /sys/devices/platform/hp-wmi/hwmon/hwmon*/fan1_input) RPM" && echo "Fan2: $(cat /sys/devices/platform/hp-wmi/hwmon/hwmon*/fan2_input) RPM"'
+
+QUICK SETUP ALIASES (add to ~/.bashrc)
+=====================================
+
+# Add these to your ~/.bashrc for quick access:
+# alias rgb-blue='echo "0000FF" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone*'
+# alias rgb-red='echo "FF0000" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone*'
+# alias rgb-green='echo "00FF00" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone*'
+# alias rgb-white='echo "FFFFFF" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone*'
+# alias rgb-off='echo "000000" | sudo tee /sys/devices/platform/hp-wmi/rgb_zones/zone*'
+# alias thermal-performance='echo "performance" | sudo tee /sys/devices/platform/hp-wmi/platform-profile/platform-profile-0/profile'
+# alias thermal-balanced='echo "balanced" | sudo tee /sys/devices/platform/hp-wmi/platform-profile/platform-profile-0/profile'
+# alias thermal-cool='echo "cool" | sudo tee /sys/devices/platform/hp-wmi/platform-profile/platform-profile-0/profile'
+# alias fan-auto='echo 2 | sudo tee /sys/devices/platform/hp-wmi/hwmon/hwmon*/pwm1_enable'
+# alias fan-max='echo 0 | sudo tee /sys/devices/platform/hp-wmi/hwmon/hwmon*/pwm1_enable'
+
+AUTOMATIC RGB SETUP ON STARTUP
+===============================
+
+# Set up automatic RGB color restoration on login
+./install_rgb_autostart.sh
+
+# Manually run the RGB setup script
+./setup_rgb_colors.sh
+
+# Set all zones to blue on startup
+./setup_rgb_colors.sh --color 0000FF
+
+# Set rainbow colors with verification
+./setup_rgb_colors.sh --verify
+
+# Check status of the auto-setup service
+systemctl --user status hp-omen-rgb.service
+
+# View logs from the auto-setup service
+journalctl --user -u hp-omen-rgb.service
+
+# Manually start the service
+systemctl --user start hp-omen-rgb.service
+
+# Disable automatic startup
+systemctl --user disable hp-omen-rgb.service
